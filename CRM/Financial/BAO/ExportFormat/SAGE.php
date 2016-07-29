@@ -78,12 +78,12 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
       FROM civicrm_batch batch 
       LEFT JOIN civicrm_entity_batch          eb  ON eb.batch_id = batch.id
       LEFT JOIN civicrm_financial_trxn        ft  ON (eb.entity_id = ft.id AND eb.entity_table = 'civicrm_financial_trxn')
-      LEFT JOIN civicrm_entity_financial_trxn eft ON (eft.financial_trxn_id = ft.id AND eb.entity_table = 'civicrm_contribution')
+      LEFT JOIN civicrm_entity_financial_trxn eft ON (eft.financial_trxn_id = ft.id AND eft.entity_table = 'civicrm_contribution')
       LEFT JOIN civicrm_contribution          ct  ON ct.id = eft.entity_id
       LEFT JOIN civicrm_campaign              cp  ON cp.id = ct.campaign_id
       LEFT JOIN {$custom_group['table_name']} dc  ON dc.entity_id = cp.id
       WHERE batch.id = ( %1 )";
-    error_log($sql);
+
     CRM_Utils_Hook::batchQuery($sql);
     $params = array(1 => array($batchId, 'Integer'));
     $dao = CRM_Core_DAO::executeQuery($sql, $params);
@@ -158,45 +158,18 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
       $queryResults = array();
 
       while ($dao->fetch()) {
-        $creditAccountName = $creditAccountType = $creditAccount = NULL;
-        if ($dao->credit_account) {
-          $creditAccountName = $dao->credit_account_name;
-          $creditAccountType = $dao->credit_account_type_code;
-          $creditAccount = $dao->credit_account;
-        }
-        else {
-          $creditAccountName = $dao->from_credit_account_name;
-          $creditAccountType = $dao->from_credit_account_type_code;
-          $creditAccount = $dao->from_credit_account;
-        }
-
-        $invoiceNo = CRM_Utils_Array::value('invoice_prefix', $prefixValue) . "" . $dao->contribution_id;
-
         $financialItems[] = array(
-          'Batch ID' => $dao->batch_id,
-          'Invoice No' => $invoiceNo,
-          'Contact ID' => $dao->contact_id,
-          'Financial Trxn ID/Internal ID' => $dao->financial_trxn_id,
-          'Transaction Date' => $dao->trxn_date,
-          'Debit Account' => $dao->to_account_code,
-          'Debit Account Name' => $dao->to_account_name,
-          'Debit Account Type' => $dao->to_account_type_code,
-          'Debit Account Amount (Unsplit)' => $dao->debit_total_amount,
-          'Transaction ID (Unsplit)' => $dao->trxn_id,
-          'Debit amount (Split)' => $dao->amount,
-          'Payment Instrument' => $dao->payment_instrument,
-          'Check Number' => $dao->check_number,
-          'Source' => $dao->source,
-          'Currency' => $dao->currency,
-          'Transaction Status' => $dao->status,
-          'Amount' => $dao->amount,
-          'Credit Account' => $creditAccount,
-          'Credit Account Name' => $creditAccountName,
-          'Credit Account Type' => $creditAccountType,
-          'Item Description' => $dao->item_description,
+          'field_1_BR'         => $dao->field_1_BR,
+          'field_2_4120'       => $dao->field_2_4120,
+          'field_3_ledgercode' => $dao->field_3_ledgercode,
+          'field_4_empty'      => $dao->field_4_empty,
+          'field_5_date'       => $dao->field_5_date,
+          'field_6_empty'      => $dao->field_6_empty,
+          'field_7_batchname'  => $dao->field_7_batchname,
+          'field_8_amount'     => $dao->field_8_amount,
         );
-
         end($financialItems);
+
         $batchItems[] = &$financialItems[key($financialItems)];
         $queryResults[] = get_object_vars($dao);
       }
