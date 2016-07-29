@@ -1,0 +1,74 @@
+From 2731a7b3f292bbd833d040203d16cb7073025af2 Mon Sep 17 00:00:00 2001
+From: systopia <endres@systopia.de>
+Date: Fri, 29 Jul 2016 16:32:09 +0200
+Subject: [PATCH] core patch for sage exporter
+
+---
+ CRM/Batch/BAO/Batch.php                 | 7 +++++++
+ CRM/Financial/Form/Export.php           | 5 +++--
+ templates/CRM/Financial/Form/Export.tpl | 2 +-
+ templates/CRM/Financial/Form/Search.tpl | 1 +
+ 4 files changed, 12 insertions(+), 3 deletions(-)
+
+diff --git a/CRM/Batch/BAO/Batch.php b/CRM/Batch/BAO/Batch.php
+index e70f6bb..9c59f28 100755
+--- a/CRM/Batch/BAO/Batch.php
++++ b/CRM/Batch/BAO/Batch.php
+@@ -612,6 +612,13 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
+         }
+         $exporter->makeIIF($export);
+         break;
++
++      case 'SAGE':
++        foreach ($batchIds as $batchId) {
++          $export[$batchId] = $exporter->generateExportQuery($batchId);
++        }
++        $exporter->makeSAGE($export);
++        break;
+     }
+   }
+ 
+diff --git a/CRM/Financial/Form/Export.php b/CRM/Financial/Form/Export.php
+index bea6d36..f82b382 100644
+--- a/CRM/Financial/Form/Export.php
++++ b/CRM/Financial/Form/Export.php
+@@ -127,8 +127,9 @@ class CRM_Financial_Form_Export extends CRM_Core_Form {
+     }
+ 
+     $optionTypes = array(
+-      'IIF' => ts('Export to IIF'),
+-      'CSV' => ts('Export to CSV'),
++      'IIF'  => ts('Export to IIF'),
++      'CSV'  => ts('Export to CSV'),
++      'SAGE' => ts('Export to SAGE'),
+     );
+ 
+     $this->addRadio('export_format', NULL, $optionTypes, NULL, '<br/>', TRUE);
+diff --git a/templates/CRM/Financial/Form/Export.tpl b/templates/CRM/Financial/Form/Export.tpl
+index 065dd17..d48b833 100644
+--- a/templates/CRM/Financial/Form/Export.tpl
++++ b/templates/CRM/Financial/Form/Export.tpl
+@@ -53,7 +53,7 @@
+ {literal}
+ <script type="text/javascript">
+   CRM.$(function($) {
+-    $('input[name="export_format"]').filter('[value=IIF]').prop('checked', true);
++    $('input[name="export_format"]').filter('[value=SAGE]').prop('checked', true);
+     $('#_qf_Export_next').click(function(){
+       $(this).hide();
+       $('#_qf_Export_cancel').val('{/literal}{ts}Done{/ts}{literal}');
+diff --git a/templates/CRM/Financial/Form/Search.tpl b/templates/CRM/Financial/Form/Search.tpl
+index 26b8165..41dc71c 100644
+--- a/templates/CRM/Financial/Form/Search.tpl
++++ b/templates/CRM/Financial/Form/Search.tpl
+@@ -181,6 +181,7 @@ CRM.$(function($) {
+               <div>\
+                 <label>{ts escape="js"}Format:{/ts}</label>\
+                 <select class="export-format">\
++                  <option value="SAGE">SAGE</option>\
+                   <option value="IIF">IIF</option>\
+                   <option value="CSV">CSV</option>\
+                 </select>\
+-- 
+2.7.4
+
