@@ -1,6 +1,6 @@
 <?php
 /*-------------------------------------------------------+
-| SAGE Exporter                                          |
+| YfC SAGE Exporter                                      |
 | Copyright (C) 2016 SYSTOPIA                            |
 | Author: B. Endres (endres -at- systopia.de)            |
 | http://www.systopia.de/                                |
