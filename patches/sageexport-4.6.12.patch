@@ -72,3 +72,32 @@ index 26b8165..41dc71c 100644
 -- 
 2.7.4
 
+From f028246058e668a3dbe3f70d5aa398442a059e79 Mon Sep 17 00:00:00 2001
+From: systopia <endres@systopia.de>
+Date: Tue, 9 Aug 2016 18:09:40 +0200
+Subject: [PATCH] robustness - this part crashes if no activity present
+
+---
+ CRM/Batch/BAO/Batch.php | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/CRM/Batch/BAO/Batch.php b/CRM/Batch/BAO/Batch.php
+index 9c59f28..283dba3 100755
+--- a/CRM/Batch/BAO/Batch.php
++++ b/CRM/Batch/BAO/Batch.php
+@@ -333,8 +333,10 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
+         $aid = CRM_Core_OptionGroup::getValue('activity_type', 'Export Accounting Batch');
+         $activityParams = array('source_record_id' => $object->id, 'activity_type_id' => $aid);
+         $exportActivity = CRM_Activity_BAO_Activity::retrieve($activityParams, $val);
+-        $fid = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_EntityFile', $exportActivity->id, 'file_id', 'entity_id');
+-        $tokens = array_merge(array('eid' => $exportActivity->id, 'fid' => $fid), $tokens);
++        if ($exportActivity) {
++          $fid = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_EntityFile', $exportActivity->id, 'file_id', 'entity_id');
++          $tokens = array_merge(array('eid' => $exportActivity->id, 'fid' => $fid), $tokens);
++        }
+       }
+       $values['action'] = CRM_Core_Action::formLink(
+         $newLinks,
+-- 
+2.7.4
+
