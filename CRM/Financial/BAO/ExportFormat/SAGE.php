@@ -19,6 +19,8 @@
  */
 class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat {
 
+  public static $tax_rates = NULL;
+
   // For this phase, we always output these records too so that there isn't data referenced in the journal entries that isn't defined anywhere.
   // Possibly in the future this could be selected by the user.
   public static $complementaryTables = array(
@@ -31,6 +33,14 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
    */
   public function __construct() {
     parent::__construct();
+
+    self::$tax_rates = array(
+      'T0' => 0.0,
+      'T1' => 0.2,
+      'T2' => 0.0,
+      'T5' => 0.05,
+      'T9' => 0.0,
+      );
   }
 
   /**
@@ -66,21 +76,25 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
 
     // compile the query
     $sql = "SELECT
-      'BR'                                   AS field_1_BR,
-      '4120'                                 AS field_2_4120,
-       {$custom_field['column_name']}        AS field_3_ledgercode,
-       NULL                                  AS field_4_empty,
-       DATE_FORMAT(ft.trxn_date, '%e%m%y')   AS field_5_date,
-       NULL                                  AS field_6_empty,
-       batch.title                           AS field_7_batchname,
-       ft.total_amount                       AS field_8_amount
+       {$custom_field['column_name']}        AS trxn_ledgercode,
+       ft.trxn_date                          AS trxn_date,
+       batch.title                           AS trxn_batch_title,
+       batch.id                              AS trxn_batch_id,
+       ty.name                               AS trxn_financial_type,
+       ct.id                                 AS contribution_id,
+       ct.receive_date                       AS contribution_receive_date,
+       ct.contact_id                         AS contact_id,
+       co.display_name                       AS contact_display_name,
+       ft.total_amount                       AS trxn_amount
 
       FROM civicrm_batch batch 
       LEFT JOIN civicrm_entity_batch          eb  ON eb.batch_id = batch.id
       LEFT JOIN civicrm_financial_trxn        ft  ON (eb.entity_id = ft.id AND eb.entity_table = 'civicrm_financial_trxn')
       LEFT JOIN civicrm_entity_financial_trxn eft ON (eft.financial_trxn_id = ft.id AND eft.entity_table = 'civicrm_contribution')
       LEFT JOIN civicrm_contribution          ct  ON ct.id = eft.entity_id
+      LEFT JOIN civicrm_contact               co  ON co.id = ct.contact_id
       LEFT JOIN civicrm_campaign              cp  ON cp.id = ct.campaign_id
+      LEFT JOIN civicrm_financial_type        ty  ON ty.id = ct.financial_type_id
       LEFT JOIN {$custom_group['table_name']} dc  ON dc.entity_id = cp.id
       WHERE batch.id = ( %1 )";
 
@@ -101,8 +115,10 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
     $fileName = $config->uploadDir . 'SAGE_Export_' . $this->_batchIds . '_' . date('YmdHis') . '.' . $this->getFileExtension();
     $this->_downloadFile[] = $config->customFileUploadDir . CRM_Utils_File::cleanFileName(basename($fileName));
     $out = fopen($fileName, 'w');
-    // fputcsv($out, $export['headers']);
+
+    fputcsv($out, $export['headers']);
     unset($export['headers']);
+
     if (!empty($export)) {
       foreach ($export as $fields) {
         fputcsv($out, $fields);
@@ -158,15 +174,40 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
       $queryResults = array();
 
       while ($dao->fetch()) {
+        // derive tax code and tax rate
+        if (preg_match('#\((?P<tax_code>T\d)\)#', $dao->trxn_financial_type, $match)) {
+          $tax_code = $match['tax_code'];
+          $tax_rate = self::$tax_rates[$tax_code];
+        } else {
+          $tax_code = '';
+          $tax_rate = 0.0;
+        }
+
+        // do some sanity checks
+        if (empty($dao->trxn_ledgercode)) {
+          throw new Exception("Contribution [{$dao->contribution_id}] has no ledger code. Please adjust destination code!");
+        }
+        if (empty($tax_code)) {
+          throw new Exception("Contribution [{$dao->contribution_id}] has no tax code. Please adjust financial type!");
+        }
+
+        $net_amount = number_format(($dao->trxn_amount / (1.0 + $tax_rate)), 2);
         $financialItems[] = array(
-          'field_1_BR'         => $dao->field_1_BR,
-          'field_2_4120'       => $dao->field_2_4120,
-          'field_3_ledgercode' => $dao->field_3_ledgercode,
-          'field_4_empty'      => $dao->field_4_empty,
-          'field_5_date'       => $dao->field_5_date,
-          'field_6_empty'      => $dao->field_6_empty,
-          'field_7_batchname'  => $dao->field_7_batchname,
-          'field_8_amount'     => $dao->field_8_amount,
+          'Type'                 => 'BR',
+          'Account Reference'    => '04120',
+          'Nominal A/C Ref'      => $dao->trxn_ledgercode,
+          'Department Code'      => '',
+          'Date'                 => date('Y-m-d', strtotime($dao->trxn_date)),
+          'Reference'            => $dao->trxn_batch_title,
+          'Details'              => "{$dao->trxn_financial_type} from {$dao->contact_display_name} [{$dao->contact_id}]",
+          'Net Amount'           => $net_amount,
+          'Tax Code'             => $tax_code,
+          'Tax Amount'           => ($dao->trxn_amount - $net_amount),
+          'Exchange Rate'        => '',
+          'Extra Reference'      => "ID{$dao->contribution_id} " . date('Y-m-d', strtotime($dao->contribution_receive_date)),
+          'User Name'            => '',
+          'Project Refn'         => '',
+          'Cost Code Refn'       => '',
         );
         end($financialItems);
 
