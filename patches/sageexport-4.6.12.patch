@@ -101,3 +101,42 @@ index 9c59f28..283dba3 100755
 -- 
 2.7.4
 
+From 31546a41306ec120187517d2b146023e7dbef2d0 Mon Sep 17 00:00:00 2001
+From: systopia <endres@systopia.de>
+Date: Sat, 26 Nov 2016 16:28:26 +0100
+Subject: [PATCH] added batch validation
+
+---
+ CRM/Financial/Form/Export.php | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/CRM/Financial/Form/Export.php b/CRM/Financial/Form/Export.php
+index f82b382..d0a1bb6 100644
+--- a/CRM/Financial/Form/Export.php
++++ b/CRM/Financial/Form/Export.php
+@@ -167,6 +167,22 @@ class CRM_Financial_Form_Export extends CRM_Core_Form {
+     elseif (!empty($this->_batchIds)) {
+       $batchIds = explode(',', $this->_batchIds);
+     }
++
++    // verify batch integrety, abort export if validation failed
++    if (method_exists("CRM_Financial_BAO_ExportFormat_SAGE", "verifyBatchIntegrety")) {
++      if (!CRM_Financial_BAO_ExportFormat_SAGE::verifyBatchIntegrety($batchIds, $errors)) {
++        // compile error text
++        $error_text = "<p>This batch cannot be exported, please fix the following problems:<ul>";
++        foreach ($errors as $error) {
++          $error_link = CRM_Utils_System::url('civicrm/contact/view/contribution', "reset=1&id={$error['contribution_id']}&cid={$error['contact_id']}&action=view");
++          $error_text .= "<li><a href='{$error_link}'>Contribution [{$error['contribution_id']}]</a>: {$error['error_message']}</li>";
++        }
++        $error_text .= "</ul></p>";
++        CRM_Core_Session::setStatus($error_text, "Validation Failed", 'error');
++        return;
++      }      
++    }
++
+     // Recalculate totals
+     $totals = CRM_Batch_BAO_Batch::batchTotals($batchIds);
+ 
+-- 
+2.7.4
+

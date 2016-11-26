@@ -65,6 +65,55 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
   }
 
   /**
+   * will check if a number of batch IDs is 'fit' for export.
+   *
+   */
+  public static function verifyBatchIntegrety($batch_ids, &$errors) {
+    // look up the necessary custom fields
+    $ledger_code_field_name = 'ledgercode';
+    $custom_field = civicrm_api3('CustomField', 'getsingle', array('name' => $ledger_code_field_name));
+    $custom_group = civicrm_api3('CustomGroup', 'getsingle', array('id' => $custom_field['custom_group_id']));
+
+    $batch_id_list = implode(',', $batch_ids);
+    $sql = "SELECT
+       ft.id                                 AS trxn_id,
+       ct.id                                 AS contribution_id,
+       ct.contact_id                         AS contact_id,
+       ty.name                               AS financial_type,
+       {$custom_field['column_name']}        AS ledger_code
+      FROM civicrm_batch batch 
+      LEFT JOIN civicrm_entity_batch          eb  ON eb.batch_id = batch.id
+      LEFT JOIN civicrm_financial_trxn        ft  ON (eb.entity_id = ft.id AND eb.entity_table = 'civicrm_financial_trxn')
+      LEFT JOIN civicrm_entity_financial_trxn eft ON (eft.financial_trxn_id = ft.id AND eft.entity_table = 'civicrm_contribution')
+      LEFT JOIN civicrm_contribution          ct  ON ct.id = eft.entity_id
+      -- LEFT JOIN civicrm_contact               co  ON co.id = ct.contact_id
+      LEFT JOIN civicrm_campaign              cp  ON cp.id = ct.campaign_id
+      LEFT JOIN civicrm_financial_type        ty  ON ty.id = ct.financial_type_id
+      LEFT JOIN {$custom_group['table_name']} dc  ON dc.entity_id = cp.id
+      WHERE batch.id IN ( {$batch_id_list} )
+        AND (  {$custom_field['column_name']} IS NULL
+            OR {$custom_field['column_name']} = ''
+            OR ty.name NOT REGEXP '(T[Z0-9])'
+            )";
+    $query = CRM_Core_DAO::executeQuery($sql);
+    while ($query->fetch()) {
+      $error_data = array(
+        'trxn_id'         => $query->trxn_id,
+        'contribution_id' => $query->contribution_id,
+        'contact_id'      => $query->contact_id,
+      );
+      if (empty($query->ledger_code)) {
+        $error_data['error_message'] = "Bad destination code.";
+      } else {
+        $error_data['error_message'] = "Tax code unclear, adjust financial type.";
+      }
+      $errors[] = $error_data;
+    }
+
+    return empty($errors);
+  }
+
+  /**
    * @param int $batchId
    *
    * @return Object
