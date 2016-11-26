@@ -183,6 +183,13 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
           $tax_rate = 0.0;
         }
 
+        // negative amounts should be cancelled as BP
+        if ($dao->trxn_amount < 0.0) {
+          $type = 'BP';
+        } else {
+          $type = 'BR';
+        }
+
         // do some sanity checks
         if (empty($dao->trxn_ledgercode)) {
           throw new Exception("Contribution [{$dao->contribution_id}] has no ledger code. Please adjust destination code!");
@@ -193,7 +200,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
 
         $net_amount = number_format(($dao->trxn_amount / (1.0 + $tax_rate)), 2);
         $financialItems[] = array(
-          'Type'                 => 'BR',
+          'Type'                 => $type,
           'Account Reference'    => '04120',
           'Nominal A/C Ref'      => $dao->trxn_ledgercode,
           'Department Code'      => '',
