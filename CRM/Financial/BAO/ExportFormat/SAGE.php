@@ -40,6 +40,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
       'T2' => 0.0,
       'T5' => 0.05,
       'T9' => 0.0,
+      'TZ' => 0.0,
       );
   }
 
@@ -175,11 +176,11 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
 
       while ($dao->fetch()) {
         // derive tax code and tax rate
-        if (preg_match('#\((?P<tax_code>T\d)\)#', $dao->trxn_financial_type, $match)) {
+        if (preg_match('#\((?P<tax_code>T[Z\d])\)#', $dao->trxn_financial_type, $match)) {
           $tax_code = $match['tax_code'];
           $tax_rate = self::$tax_rates[$tax_code];
         } else {
-          $tax_code = '';
+          $tax_code = 'N/A';
           $tax_rate = 0.0;
         }
 
