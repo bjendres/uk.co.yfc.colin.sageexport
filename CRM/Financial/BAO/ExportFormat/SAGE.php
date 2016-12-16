@@ -252,14 +252,11 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
           throw new Exception("Contribution [{$dao->contribution_id}] has no tax code. Please adjust financial type!");
         }
 
-        // ledger code to nominal code: remove last digit
-        $nominal_code = substr($dao->trxn_ledgercode, 0, strlen($dao->trxn_ledgercode)-1);
-
         $net_amount = number_format(($amount / (1.0 + $tax_rate)), 2);
         $financialItems[] = array(
           'Type'                 => $type,
           'Account Reference'    => '04120',
-          'Nominal A/C Ref'      => $nominal_code,
+          'Nominal A/C Ref'      => $dao->trxn_ledgercode,
           'Department Code'      => '',
           'Date'                 => date('Y-m-d', strtotime($dao->trxn_date)),
           'Reference'            => $dao->trxn_batch_title,
