@@ -134,6 +134,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
        ct.id                                 AS contribution_id,
        ct.receive_date                       AS contribution_receive_date,
        ct.contact_id                         AS contact_id,
+       pi.label                              AS payment_instrument,
        co.display_name                       AS contact_display_name,
        ft.total_amount                       AS trxn_amount
 
@@ -142,6 +143,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
       LEFT JOIN civicrm_financial_trxn        ft  ON (eb.entity_id = ft.id AND eb.entity_table = 'civicrm_financial_trxn')
       LEFT JOIN civicrm_entity_financial_trxn eft ON (eft.financial_trxn_id = ft.id AND eft.entity_table = 'civicrm_contribution')
       LEFT JOIN civicrm_contribution          ct  ON ct.id = eft.entity_id
+      LEFT JOIN civicrm_option_value          pi  ON pi.value = ct.payment_instrument_id AND pi.option_group_id = 10
       LEFT JOIN civicrm_contact               co  ON co.id = ct.contact_id
       LEFT JOIN civicrm_campaign              cp  ON cp.id = ct.campaign_id
       LEFT JOIN civicrm_financial_type        ty  ON ty.id = ct.financial_type_id
@@ -250,15 +252,18 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
           throw new Exception("Contribution [{$dao->contribution_id}] has no tax code. Please adjust financial type!");
         }
 
+        // ledger code to nominal code: remove last digit
+        $nominal_code = substr($dao->trxn_ledgercode, 0, strlen($dao->trxn_ledgercode)-1);
+
         $net_amount = number_format(($amount / (1.0 + $tax_rate)), 2);
         $financialItems[] = array(
           'Type'                 => $type,
           'Account Reference'    => '04120',
-          'Nominal A/C Ref'      => $dao->trxn_ledgercode,
+          'Nominal A/C Ref'      => $nominal_code,
           'Department Code'      => '',
           'Date'                 => date('Y-m-d', strtotime($dao->trxn_date)),
           'Reference'            => $dao->trxn_batch_title,
-          'Details'              => "{$dao->trxn_financial_type} from {$dao->contact_display_name} [{$dao->contact_id}]",
+          'Details'              => "{$dao->trxn_financial_type} from {$dao->contact_display_name} [{$dao->contact_id}] via {$dao->payment_instrument}",
           'Net Amount'           => $net_amount,
           'Tax Code'             => $tax_code,
           'Tax Amount'           => number_format(($amount - $net_amount), 2),
