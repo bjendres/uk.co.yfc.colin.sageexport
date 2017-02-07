@@ -252,7 +252,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
           throw new Exception("Contribution [{$dao->contribution_id}] has no tax code. Please adjust financial type!");
         }
 
-        $net_amount = number_format(($amount / (1.0 + $tax_rate)), 2);
+        $net_amount = number_format(($amount / (1.0 + $tax_rate)), 2, '.', '');
         $financialItems[] = array(
           'Type'                 => $type,
           'Account Reference'    => '04120',
@@ -263,7 +263,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
           'Details'              => "{$dao->trxn_financial_type} from {$dao->contact_display_name} [{$dao->contact_id}] via {$dao->payment_instrument}",
           'Net Amount'           => $net_amount,
           'Tax Code'             => $tax_code,
-          'Tax Amount'           => number_format(($amount - $net_amount), 2),
+          'Tax Amount'           => number_format(($amount - $net_amount), 2, '.', ''),
           'Exchange Rate'        => '',
           'Extra Reference'      => "ID{$dao->contribution_id} " . date('Y-m-d', strtotime($dao->contribution_receive_date)),
           'User Name'            => '',
