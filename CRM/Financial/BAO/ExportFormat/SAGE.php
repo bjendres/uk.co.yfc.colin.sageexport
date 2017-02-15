@@ -136,6 +136,8 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
        ct.contact_id                         AS contact_id,
        pi.label                              AS payment_instrument,
        co.display_name                       AS contact_display_name,
+       fa.account_type_code                  AS from_account_type,
+       ta.account_type_code                  AS to_account_type,
        ft.total_amount                       AS trxn_amount
 
       FROM civicrm_batch batch 
@@ -148,6 +150,8 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
       LEFT JOIN civicrm_campaign              cp  ON cp.id = ct.campaign_id
       LEFT JOIN civicrm_financial_type        ty  ON ty.id = ct.financial_type_id
       LEFT JOIN {$custom_group['table_name']} dc  ON dc.entity_id = cp.id
+      LEFT JOIN civicrm_financial_account     fa  ON fa.id = ft.from_financial_account_id
+      LEFT JOIN civicrm_financial_account     ta  ON ta.id = ft.to_financial_account_id
       WHERE batch.id = ( %1 )";
 
     CRM_Utils_Hook::batchQuery($sql);
@@ -239,7 +243,15 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
         if ($dao->trxn_amount < 0.0) {
           $amount = -($dao->trxn_amount);
           $type  = 'BP';
+        
+        } elseif ($dao->to_account_type == 'EXP' && $dao->from_account_type != 'EXP') {
+          // this is an expenses transaction
+          //  see https://projekte.systopia.de/redmine/issues/4397#note-3
+          $amount = $dao->trxn_amount;
+          $type  = 'BP';
+        
         } else {
+          // this is a regular transaction
           $amount = $dao->trxn_amount;
           $type = 'BR';
         }
