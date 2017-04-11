@@ -81,7 +81,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
        ct.contact_id                         AS contact_id,
        ty.name                               AS financial_type,
        {$custom_field['column_name']}        AS ledger_code
-      FROM civicrm_batch batch 
+      FROM civicrm_batch batch
       LEFT JOIN civicrm_entity_batch          eb  ON eb.batch_id = batch.id
       LEFT JOIN civicrm_financial_trxn        ft  ON (eb.entity_id = ft.id AND eb.entity_table = 'civicrm_financial_trxn')
       LEFT JOIN civicrm_entity_financial_trxn eft ON (eft.financial_trxn_id = ft.id AND eft.entity_table = 'civicrm_contribution')
@@ -127,6 +127,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
     // compile the query
     $sql = "SELECT
        {$custom_field['column_name']}        AS trxn_ledgercode,
+       cp.external_identifier                AS destination_code,
        ft.trxn_date                          AS trxn_date,
        batch.title                           AS trxn_batch_title,
        batch.id                              AS trxn_batch_id,
@@ -140,7 +141,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
        ta.account_type_code                  AS to_account_type,
        ft.total_amount                       AS trxn_amount
 
-      FROM civicrm_batch batch 
+      FROM civicrm_batch batch
       LEFT JOIN civicrm_entity_batch          eb  ON eb.batch_id = batch.id
       LEFT JOIN civicrm_financial_trxn        ft  ON (eb.entity_id = ft.id AND eb.entity_table = 'civicrm_financial_trxn')
       LEFT JOIN civicrm_entity_financial_trxn eft ON (eft.financial_trxn_id = ft.id AND eft.entity_table = 'civicrm_contribution')
@@ -206,13 +207,13 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
   /**
    * Generate SAGE CSV array for export.
    * (CiviCRM 4.6 compatibility method)
-   * 
+   *
    * @param array $export
    */
-  public function makeSAGE($export) {  
+  public function makeSAGE($export) {
     return $this->makeExport($export);
   }
-  
+
   /**
    * Generate SAGE CSV array for export.
    *
@@ -243,13 +244,13 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
         if ($dao->trxn_amount < 0.0) {
           $amount = -($dao->trxn_amount);
           $type  = 'BP';
-        
+
         } elseif ($dao->to_account_type == 'EXP' && $dao->from_account_type != 'EXP') {
           // this is an expenses transaction
           //  see https://projekte.systopia.de/redmine/issues/4397#note-3
           $amount = $dao->trxn_amount;
           $type  = 'BP';
-        
+
         } else {
           // this is a regular transaction
           $amount = $dao->trxn_amount;
@@ -264,6 +265,11 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
           throw new Exception("Contribution [{$dao->contribution_id}] has no tax code. Please adjust financial type!");
         }
 
+        // compile extra_reference
+        $extra_reference = "ID{$dao->contribution_id} ";
+        $extra_reference .= date('Y-m-d', strtotime($dao->contribution_receive_date));
+        $extra_reference .= " [{$dao->destination_code}]";
+
         $net_amount = number_format(($amount / (1.0 + $tax_rate)), 2, '.', '');
         $financialItems[] = array(
           'Type'                 => $type,
@@ -277,7 +283,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
           'Tax Code'             => $tax_code,
           'Tax Amount'           => number_format(($amount - $net_amount), 2, '.', ''),
           'Exchange Rate'        => '',
-          'Extra Reference'      => "ID{$dao->contribution_id} " . date('Y-m-d', strtotime($dao->contribution_receive_date)),
+          'Extra Reference'      => $extra_reference,
           'User Name'            => '',
           'Project Refn'         => '',
           'Cost Code Refn'       => '',
