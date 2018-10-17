@@ -70,9 +70,15 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
    */
   public static function verifyBatchIntegrety($batch_ids, &$errors) {
     // look up the necessary custom fields
-    $ledger_code_field_name = 'ledgercode';
-    $custom_field = civicrm_api3('CustomField', 'getsingle', array('name' => $ledger_code_field_name));
-    $custom_group = civicrm_api3('CustomGroup', 'getsingle', array('id' => $custom_field['custom_group_id']));
+    try {
+      $ledger_code_field_name = 'ledgercode';
+      $custom_field = civicrm_api3('CustomField', 'getsingle', array('name' => $ledger_code_field_name));
+      $custom_group = civicrm_api3('CustomGroup', 'getsingle', array('id' => $custom_field['custom_group_id']));
+    } catch (Exception $ex) {
+      // it seems the ledger code field is not present
+      throw new Exception("Custom field 'ledgercode' not found!");
+    }
+
 
     $batch_id_list = implode(',', $batch_ids);
     $sql = "SELECT
