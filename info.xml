@@ -14,13 +14,13 @@
     <url desc="Support">https://github.com/systopia/uk.co.yfc.colin.sageexport/issues</url>
     <url desc="Licensing">http://www.gnu.org/licenses/agpl-3.0.html</url>
   </urls>
-  <releaseDate>2017-04-11</releaseDate>
-  <version>0.8</version>
+  <releaseDate>2018-10-17</releaseDate>
+  <version>1.0.dev-84474bd42</version>
   <develStage>dev</develStage>
   <compatibility>
-    <ver>4.6</ver>
+    <ver>5.3</ver>
   </compatibility>
-  <comments>more detailed SAGE Export</comments>
+  <comments>A more detailed, customised export to the SAGE accounting system.</comments>
   <civix>
     <namespace>CRM/Sageexport</namespace>
   </civix>
