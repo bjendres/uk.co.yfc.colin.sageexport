@@ -71,22 +71,23 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
   public static function verifyBatchIntegrety($batch_ids, &$errors) {
     // look up the necessary custom fields
     try {
-      $ledger_code_field_name = 'ledgercode';
+      $ledger_code_field_name = 'new_ledger_code';
       $custom_field = civicrm_api3('CustomField', 'getsingle', array('name' => $ledger_code_field_name));
       $custom_group = civicrm_api3('CustomGroup', 'getsingle', array('id' => $custom_field['custom_group_id']));
     } catch (Exception $ex) {
       // it seems the ledger code field is not present
-      throw new Exception("Custom field 'ledgercode' not found!");
+      throw new Exception("Custom field 'new_ledger_code' not found!");
     }
 
 
     $batch_id_list = implode(',', $batch_ids);
     $sql = "SELECT
-       ft.id                                 AS trxn_id,
-       ct.id                                 AS contribution_id,
-       ct.contact_id                         AS contact_id,
-       ty.name                               AS financial_type,
-       {$custom_field['column_name']}        AS ledger_code
+       ft.id                                           AS trxn_id,
+       ct.id                                           AS contribution_id,
+       ct.contact_id                                   AS contact_id,
+       ty.name                                         AS financial_type,
+       SUBSTRING({$custom_field['column_name']}, 0, 2) AS department_code,
+       SUBSTRING({$custom_field['column_name']}, 2, 4) AS ledger_code
       FROM civicrm_batch batch
       LEFT JOIN civicrm_entity_batch          eb  ON eb.batch_id = batch.id
       LEFT JOIN civicrm_financial_trxn        ft  ON (eb.entity_id = ft.id AND eb.entity_table = 'civicrm_financial_trxn')
@@ -126,26 +127,27 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
    */
   public function generateExportQuery($batchId) {
     // look up the necessary custom fields
-    $ledger_code_field_name = 'ledgercode';
+    $ledger_code_field_name = 'new_ledger_code';
     $custom_field = civicrm_api3('CustomField', 'getsingle', array('name' => $ledger_code_field_name));
     $custom_group = civicrm_api3('CustomGroup', 'getsingle', array('id' => $custom_field['custom_group_id']));
 
     // compile the query
     $sql = "SELECT
-       {$custom_field['column_name']}        AS trxn_ledgercode,
-       cp.external_identifier                AS destination_code,
-       ft.trxn_date                          AS trxn_date,
-       batch.title                           AS trxn_batch_title,
-       batch.id                              AS trxn_batch_id,
-       ty.name                               AS trxn_financial_type,
-       ct.id                                 AS contribution_id,
-       ct.receive_date                       AS contribution_receive_date,
-       ct.contact_id                         AS contact_id,
-       pi.label                              AS payment_instrument,
-       co.display_name                       AS contact_display_name,
-       fa.account_type_code                  AS from_account_type,
-       ta.account_type_code                  AS to_account_type,
-       ft.total_amount                       AS trxn_amount
+       SUBSTRING({$custom_field['column_name']}, 1, 2) AS trxn_departmentcode,
+       SUBSTRING({$custom_field['column_name']}, 3, 4) AS trxn_ledgercode,
+       cp.external_identifier                          AS destination_code,
+       ft.trxn_date                                    AS trxn_date,
+       batch.title                                     AS trxn_batch_title,
+       batch.id                                        AS trxn_batch_id,
+       ty.name                                         AS trxn_financial_type,
+       ct.id                                           AS contribution_id,
+       ct.receive_date                                 AS contribution_receive_date,
+       ct.contact_id                                   AS contact_id,
+       pi.label                                        AS payment_instrument,
+       co.display_name                                 AS contact_display_name,
+       fa.account_type_code                            AS from_account_type,
+       ta.account_type_code                            AS to_account_type,
+       ft.total_amount                                 AS trxn_amount
 
       FROM civicrm_batch batch
       LEFT JOIN civicrm_entity_batch          eb  ON eb.batch_id = batch.id
@@ -160,7 +162,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
       LEFT JOIN civicrm_financial_account     fa  ON fa.id = ft.from_financial_account_id
       LEFT JOIN civicrm_financial_account     ta  ON ta.id = ft.to_financial_account_id
       WHERE batch.id = ( %1 )";
-
+    CRM_Core_Error::debug_log_message($sql);
     CRM_Utils_Hook::batchQuery($sql);
     $params = array(1 => array($batchId, 'Integer'));
     $dao = CRM_Core_DAO::executeQuery($sql, $params);
@@ -281,7 +283,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
           'Type'                 => $type,
           'Account Reference'    => '04120',
           'Nominal A/C Ref'      => $dao->trxn_ledgercode,
-          'Department Code'      => '',
+          'Department Code'      => $dao->trxn_departmentcode,
           'Date'                 => date('Y-m-d', strtotime($dao->trxn_date)),
           'Reference'            => $dao->trxn_batch_title,
           'Details'              => "{$dao->trxn_financial_type} from {$dao->contact_display_name} [{$dao->contact_id}] via {$dao->payment_instrument}",
