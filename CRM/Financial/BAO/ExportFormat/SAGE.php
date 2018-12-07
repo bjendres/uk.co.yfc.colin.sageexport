@@ -281,7 +281,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE extends CRM_Financial_BAO_ExportFormat
         $net_amount = number_format(($amount / (1.0 + $tax_rate)), 2, '.', '');
         $financialItems[] = array(
           'Type'                 => $type,
-          'Account Reference'    => '04120',
+          'Account Reference'    => '001200',
           'Nominal A/C Ref'      => $dao->trxn_ledgercode,
           'Department Code'      => $dao->trxn_departmentcode,
           'Date'                 => date('Y-m-d', strtotime($dao->trxn_date)),
