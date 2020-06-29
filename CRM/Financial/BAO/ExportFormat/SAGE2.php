@@ -57,8 +57,8 @@ class CRM_Financial_BAO_ExportFormat_SAGE2 extends CRM_Financial_BAO_ExportForma
       WHERE batch.id IN ( {$batch_id_list} )
         AND (  
                 {$department_code_field['column_name']} IS NULL OR {$department_code_field['column_name']} = ''
-                {$nominal_code_field['column_name']} IS NULL OR {$nominal_code_field['column_name']} = ''
-                {$fund_code_field['column_name']} IS NULL OR {$fund_code_field['column_name']} = ''
+                OR {$nominal_code_field['column_name']} IS NULL OR {$nominal_code_field['column_name']} = ''
+                OR {$fund_code_field['column_name']} IS NULL OR {$fund_code_field['column_name']} = ''
                 OR ty.name NOT REGEXP '(T[Z0-9])'
             )";
     $query = CRM_Core_DAO::executeQuery($sql);
