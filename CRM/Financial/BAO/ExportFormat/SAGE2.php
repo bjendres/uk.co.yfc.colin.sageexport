@@ -123,7 +123,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE2 extends CRM_Financial_BAO_ExportForma
       LEFT JOIN civicrm_financial_account     fa  ON fa.id = ft.from_financial_account_id
       LEFT JOIN civicrm_financial_account     ta  ON ta.id = ft.to_financial_account_id
       WHERE batch.id = ( %1 )";
-    CRM_Core_Error::debug_log_message($sql);
+    //CRM_Core_Error::debug_log_message($sql);
     CRM_Utils_Hook::batchQuery($sql);
     $params = array(1 => array($batchId, 'Integer'));
     $dao = CRM_Core_DAO::executeQuery($sql, $params);
@@ -139,7 +139,9 @@ class CRM_Financial_BAO_ExportFormat_SAGE2 extends CRM_Financial_BAO_ExportForma
   public function putFile($export) {
     $config = CRM_Core_Config::singleton();
     $fileName = $config->uploadDir . 'SAGE2_Export_' . $this->_batchIds . '_' . date('YmdHis') . '.' . $this->getFileExtension();
-    $this->_downloadFile[] = $config->customFileUploadDir . CRM_Utils_File::cleanFileName(basename($fileName));
+    $download_file = $config->customFileUploadDir . CRM_Utils_File::cleanFileName(basename($fileName));
+    $this->_downloadFile[] = $download_file;
+    Civi::log()->debug("SAGE2: trying to write to {$download_file}");
     $out = fopen($fileName, 'w');
 
     fputcsv($out, $export['headers']);
