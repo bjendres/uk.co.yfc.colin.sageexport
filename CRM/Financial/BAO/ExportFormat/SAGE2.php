@@ -28,7 +28,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE2 extends CRM_Financial_BAO_ExportForma
     try {
       $department_code_field = civicrm_api3('CustomField', 'getsingle', array('name' => 'department_code'));
       $nominal_code_field = civicrm_api3('CustomField', 'getsingle', array('name' => 'nominal_code'));
-      $fund_code_field = civicrm_api3('CustomField', 'getsingle', array('name' => 'department_code'));
+      $fund_code_field = civicrm_api3('CustomField', 'getsingle', array('name' => 'fund_code'));
       $custom_group = civicrm_api3('CustomGroup', 'getsingle', array('id' => $department_code_field['custom_group_id']));
     } catch (Exception $ex) {
       // it seems the ledger code field is not present
@@ -88,7 +88,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE2 extends CRM_Financial_BAO_ExportForma
     // look up the necessary custom fields
     $department_code_field = civicrm_api3('CustomField', 'getsingle', array('name' => 'department_code'));
     $nominal_code_field = civicrm_api3('CustomField', 'getsingle', array('name' => 'nominal_code'));
-    $fund_code_field = civicrm_api3('CustomField', 'getsingle', array('name' => 'department_code'));
+    $fund_code_field = civicrm_api3('CustomField', 'getsingle', array('name' => 'fund_code'));
     $custom_group = civicrm_api3('CustomGroup', 'getsingle', array('id' => $department_code_field['custom_group_id']));
 
     // compile the query
