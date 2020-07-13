@@ -218,7 +218,6 @@ class CRM_Financial_BAO_ExportFormat_SAGE2 extends CRM_Financial_BAO_ExportForma
           'Account Reference'    => '001200',
           'Nominal A/C Ref'      => $dao->trxn_ledgercode,
           'Department Code'      => $dao->trxn_departmentcode,
-          'Fund Code'            => $dao->trxn_fundcode,
           'Date'                 => date('Y-m-d', strtotime($dao->trxn_date)),
           'Reference'            => $dao->trxn_batch_title,
           'Details'              => "{$dao->trxn_financial_type} from {$dao->contact_display_name} [{$dao->contact_id}] via {$dao->payment_instrument}",
@@ -227,7 +226,7 @@ class CRM_Financial_BAO_ExportFormat_SAGE2 extends CRM_Financial_BAO_ExportForma
           'Tax Amount'           => number_format(($amount - $net_amount), 2, '.', ''),
           'Exchange Rate'        => '',
           'Extra Reference'      => $extra_reference,
-          'User Name'            => '',
+          'User Name'            => $dao->trxn_fundcode,
           'Project Refn'         => '',
           'Cost Code Refn'       => '',
         );
