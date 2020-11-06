@@ -1,79 +1,35 @@
 From: "B. Endres" <endres@systopia.de>
-Subject: Patches to use old/new SAGE/SAGE2 side-by-side
+Subject: Patches to use new SAGE2
 
-CRM/Financial/Form/Export.php:
-***************
-*** 87,91 ****
-          $this->_batchIds = $this->get('batchIds');
-        }
-!       if (!empty($_GET['export_format']) && in_array($_GET['export_format'], array('SAGE', 'IIF', 'CSV'))) {
-          $this->_exportFormat = $_GET['export_format'];
-        }
---- 87,91 ----
-          $this->_batchIds = $this->get('batchIds');
-        }
-!       if (!empty($_GET['export_format']) && in_array($_GET['export_format'], array('SAGE', 'SAGE2', 'IIF', 'CSV'))) {
-          $this->_exportFormat = $_GET['export_format'];
-        }
-***************
-*** 128,131 ****
---- 128,132 ----
-      $optionTypes = array(
-        'SAGE' => ts('Export to SAGE'),
-+       'SAGE2' => ts('Export to SAGE (new)'),
-        'IIF'  => ts('Export to IIF'),
-        'CSV'  => ts('Export to CSV'),
-***************
-*** 133,136 ****
---- 134,138 ----
-
-      $this->addRadio('export_format', NULL, $optionTypes, NULL, '<br/>', TRUE);
-+     $this->setDefaultValues(['export_format' => 'SAGE2']);
-
-      $this->addButtons(
-***************
-*** 167,170 ****
---- 169,186 ----
-
-      // verify batch integrety, abort export if validation failed
-+     if (method_exists("CRM_Financial_BAO_ExportFormat_SAGE2", "verifyBatchIntegrety")) {
-+       $errors = array();
-+       if (!CRM_Financial_BAO_ExportFormat_SAGE2::verifyBatchIntegrety($batchIds, $errors)) {
-+         // compile error text
-+         $error_text = "<p>This batch cannot be exported, please fix the following problems:<ul>";
-+         foreach ($errors as $error) {
-+           $error_link = CRM_Utils_System::url('civicrm/contact/view/contribution', "reset=1&id={$error['contribution_id']}&cid={$error['contact_id']}&action=view");
-+           $error_text .= "<li><a href='{$error_link}'>Contribution [{$error['contribution_id']}]</a>: {$error['error_message']}</li>";
-+         }
-+         $error_text .= "</ul></p>";
-+         CRM_Core_Session::setStatus($error_text, "Validation Failed", 'error');
-+         return;
-+       }
-+     }
-      if (method_exists("CRM_Financial_BAO_ExportFormat_SAGE", "verifyBatchIntegrety")) {
-        $errors = array();
-
-
-templates/CRM/Financial/Form/Search.tpl:
---- 180,188 ----
-                  <select class="export-format">\
-                    <option value="SAGE">SAGE</option>\
-+                   <option value="SAGE2">SAGE (new)</option>\
-                    <option value="IIF">IIF</option>\
-                    <option value="CSV">CSV</option>\
-
-
-
-templates/CRM/Financial/Form/Export.tpl
-*** 54,58 ****
-  <script type="text/javascript">
-    CRM.$(function($) {
-!     $('input[name="export_format"]').filter('[value=SAGE]').prop('checked', true);
-      $('#_qf_Export_next').click(function(){
-        $(this).hide();
---- 54,58 ----
-  <script type="text/javascript">
-    CRM.$(function($) {
-!     $('input[name="export_format"]').filter('[value=SAGE2]').prop('checked', true);
-      $('#_qf_Export_next').click(function(){
-        $(this).hide();
+[yfc@colvm civicrm]$ diff CRM/Financial/Form/Export.php_original CRM/Financial/Form/Export.php
+89c89
+<       if (!empty($_GET['export_format']) && in_array($_GET['export_format'], array('IIF', 'CSV'))) {
+---
+>       if (!empty($_GET['export_format']) && in_array($_GET['export_format'], array('SAGE2', 'IIF', 'CSV'))) {
+129,130c129,131
+<       'IIF' => ts('Export to IIF'),
+<       'CSV' => ts('Export to CSV'),
+---
+>       'SAGE2' => ts('Export to SAGE (new)'),
+>       'IIF'  => ts('Export to IIF'),
+>       'CSV'  => ts('Export to CSV'),
+133a135
+>     $this->setDefaultValues(['export_format' => 'SAGE2']);
+165a168,184
+>
+>     // verify batch integrety, abort export if validation failed
+>     if (method_exists("CRM_Financial_BAO_ExportFormat_SAGE2", "verifyBatchIntegrety")) {
+>       $errors = array();
+>       if (!CRM_Financial_BAO_ExportFormat_SAGE2::verifyBatchIntegrety($batchIds, $errors)) {
+>         // compile error text
+>         $error_text = "<p>This batch cannot be exported, please fix the following problems:<ul>";
+>         foreach ($errors as $error) {
+>           $error_link = CRM_Utils_System::url('civicrm/contact/view/contribution', "reset=1&id={$error['contribution_id']}&cid={$error['contact_id']}&action=view");
+>           $error_text .= "<li><a href='{$error_link}'>Contribution [{$error['contribution_id']}]</a>: {$error['error_message']}</li>";
+>         }
+>         $error_text .= "</ul></p>";
+>         CRM_Core_Session::setStatus($error_text, "Validation Failed", 'error');
+>         return;
+>       }
+>     }
+>
